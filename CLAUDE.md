@@ -15,7 +15,7 @@ A family-only website combining a season-long Brewers win-prediction game with a
 
 | Layer | Tech |
 |---|---|
-| Frontend | React 18 + Vite + TypeScript + Tailwind CSS |
+| Frontend | React 19 + Vite 9 + TypeScript + Tailwind CSS v4 |
 | Hosting | **Hetzner VPS** (Docker Compose, Caddy reverse proxy) |
 | DNS + edge | **Cloudflare** (proxy mode, Origin Certs) |
 | Auth + DB + Realtime | Supabase (managed) |

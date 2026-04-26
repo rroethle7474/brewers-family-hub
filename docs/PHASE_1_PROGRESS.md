@@ -4,7 +4,7 @@ Living doc tracking what's done, what's next, and how to resume across Claude se
 
 ---
 
-## Status: ⏸ Paused mid-pre-flight (folder rename pending)
+## Status: 🟢 Task #3 complete — scaffold verified, ready for task #4
 
 Last updated: 2026-04-26
 
@@ -15,16 +15,26 @@ Last updated: 2026-04-26
 - [x] Initialized git repo (`git init` in project root)
 - [x] Initial commit landed: `675fcfb chore: initial scaffold (CLAUDE.md, SPEC.md, agents)`
 - [x] Supabase project `brewers-family-hub` created in East US (N. Virginia)
-- [x] Captured Supabase URL + publishable key to `.env.local` (root, gitignored)
+- [x] Captured Supabase URL + publishable key to `.env.local` (gitignored)
 - [x] Updated `.gitignore` to cover `**/.env.local` and `**/.env.*.local` patterns
-- [x] Saved Supabase URL + publishable key to Claude memory (so resume works even if `.env.local` is lost)
-- [x] Phase 1 task list seeded in Claude's task tracker (10 tasks)
+- [x] Saved Supabase URL + publishable key to Claude memory
+- [x] **Folder rename** — `horst-family-brewers` → `brewers-family-hub`; matching memory folder also renamed; persisted memory survived
+- [x] **Task #3 (scaffold) — files in place**:
+  - `web/` initialized with Vite 9 + **React 19** + TypeScript
+  - Tailwind **v4** wired via `@tailwindcss/vite` plugin (CSS-first config — no `tailwind.config.js`)
+  - Brewers design tokens (navy / gold / gold-deep / win / loss / live + neutrals) defined in `web/src/index.css` via `@theme`
+  - Bricolage Grotesque (display) + Inter (body) loaded from Google Fonts; `tnum` font feature on
+  - `web/src/lib/supabase.ts` created with env-var guard
+  - `index.html`: title, `viewport-fit=cover` (iOS notch), `theme-color = navy`
+  - `App.tsx` replaced with palette swatch placeholder
+  - Vite scaffold demo files removed (`App.css`, hero/react/vite svgs, `icons.svg`)
+- [x] `.env.local` moved from project root → `web/.env.local` (covered by Vite's default `*.local` gitignore)
+- [x] `web/.env.example` added (safe to commit) for future contributors
+
+- [x] **Task #3 smoke test** — Node upgraded to v24.15.0 via nvm-windows (after uninstalling prior MSI Node install). `npm run build` clean (191KB JS / 60KB gzip). `npm run dev` boots in 344ms. Page renders correctly in Chrome with Bricolage Grotesque headline, Inter body, and the three Brewers swatches.
 
 ### Next up
 
-- [ ] **Folder rename** — Ryan renames `horst-family-brewers` → `brewers-family-hub` (see resume instructions below)
-- [ ] Scaffold `web/` with Vite + React 18 + TypeScript + Tailwind (task #3)
-- [ ] Move `.env.local` from project root → `web/.env.local`
 - [ ] Scaffold `supabase/` directory structure (task #4)
 - [ ] Schema migration via `supabase-agent` (task #5)
 - [ ] Edge Function: `sync-standings` (task #6)
@@ -37,40 +47,31 @@ Last updated: 2026-04-26
 
 ## Resume instructions (for the next Claude session)
 
-### Step 1 — Rename the project folder
+We're picking up mid-task-#3 after a Node upgrade. The scaffold is on disk; only the smoke test remains for #3.
 
-In Windows File Explorer or PowerShell, with VS Code and Claude **closed**:
+### Step 1 — Confirm Node ≥ 22.12 is active
 
-```powershell
-Rename-Item "C:\Users\rroet\source\horst-family-brewers" "brewers-family-hub"
+In the new terminal:
+
+```bash
+node --version    # expect v22.12.x or higher
 ```
 
-### Step 2 — Rename the Claude memory folder so persistent notes survive
+If still showing 22.9 or older, see "Decisions log → nvm-windows on a machine with prior MSI Node install" below.
 
-The memory directory is keyed to the project path. Without this rename, Claude loses every fact saved during the first session.
+### Step 2 — Paste this prompt to Claude
 
-```powershell
-Rename-Item "C:\Users\rroet\.claude\projects\C--Users-rroet-source-horst-family-brewers" "C--Users-rroet-source-brewers-family-hub"
-```
-
-### Step 3 — Reopen and resume
-
-1. Open VS Code in the new folder: `code C:\Users\rroet\source\brewers-family-hub`
-2. Start Claude Code (`claude` in the integrated terminal)
-3. Paste this prompt:
-
-> Resuming Phase 1 of Brewers Family Hub. Read `docs/PHASE_1_PROGRESS.md` for where we left off. Confirm `.env.local` still has the Supabase URL + publishable key (and is gitignored), then proceed to task #3 — scaffolding `web/` with Vite + React + TypeScript + Tailwind.
-
-That's it. Claude will pick up from task #3.
+> Resuming Phase 1 of Brewers Family Hub at task #3 smoke test. Read `docs/PHASE_1_PROGRESS.md` for context. From `web/`, run `npm install` (lockfile may need rebuilding now that Node is current) then `npm run dev` and confirm the page loads at the dev URL. Then move on to task #4 (scaffold `supabase/`).
 
 ### Sanity checks Claude should run on resume
 
-- `git -C . log --oneline` → should show the `675fcfb` initial scaffold commit
-- `git -C . check-ignore -v .env.local` → should show it's matched by `.gitignore`
-- `cat .env.local` (or equivalent) → should have `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
-- Read `MEMORY.md` from the renamed memory folder → should have the Supabase project entry
+- `node --version` → ≥ 22.12.0
+- `git log --oneline` → should show at least `675fcfb` and `85a8f91`
+- `git check-ignore -v web/.env.local` → matched by `web/.gitignore` (`*.local`)
+- `cat web/.env.local` → has `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+- Read `MEMORY.md` → should have the Supabase project entry
 
-If memory is missing, the values are also recoverable from `.env.local`.
+If `web/.env.local` is missing, restore it from the values in the Supabase project memory entry.
 
 ---
 
@@ -97,3 +98,5 @@ If memory is missing, the values are also recoverable from `.env.local`.
 - **Hosting deferred** — Phase 1 builds locally only. Hosting choice (Vercel vs. Hetzner VPS) revisited at end of phase per kickoff doc.
 - **Brewers team ID 158 confirmed** — verified live against `https://statsapi.mlb.com/api/v1/teams/158`. Don't re-validate every session.
 - **Publishable key format** — Ryan's project uses the new `sb_publishable_*` format (not legacy `eyJ...` JWT). The Supabase MCP and supabase-js v2 both support this seamlessly.
+- **React 19 + Tailwind v4 (deviation from original CLAUDE.md)** — `create-vite` ships React 19 in 2026; we accepted that rather than downgrading. Tailwind v4 uses CSS-first config: tokens live in `web/src/index.css` as `@theme` variables, **no `tailwind.config.js`**. CLAUDE.md tech-stack table updated to match.
+- **nvm-windows on a machine with prior MSI Node install** — nvm-windows manages versions by symlinking `C:\Program Files\nodejs` to its active version. If a prior official Node MSI is sitting at that path as a real directory, `nvm install` may "succeed" but `nvm use` silently fails to swap the symlink, and `node --version` keeps reporting the old version. Fix: uninstall the original Node from Settings → Apps, then `nvm install lts && nvm use <ver>` in **admin** PowerShell.
