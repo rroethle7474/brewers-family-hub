@@ -4,7 +4,7 @@ Living doc tracking what's done, what's next, and how to resume across Claude se
 
 ---
 
-## Status: 🟢 Task #6 complete (function deployed + verified) — schedule still TODO via Dashboard. Ready for task #7 (frontend pages).
+## Status: ✅ Phase 1 complete — auth, predictions, leaderboard, PWA all shipping. Deployment deferred. See `PHASE_2_KICKOFF.md` to start Phase 2.
 
 Last updated: 2026-04-26
 
@@ -45,55 +45,37 @@ Last updated: 2026-04-26
   - Generated `web/src/lib/database.types.ts` from the public schema. Verified it satisfies `GenericSchema` (gotcha #3 from the Supabase MCP workflow skill: `__InternalSupabase`, `Views`, `Functions`, `Relationships` all present).
   - Wired the Supabase client to use the generated types: `createClient<Database>` in `web/src/lib/supabase.ts`. `npx tsc -b` clean.
 
-- [x] **Task #6 complete — sync-standings Edge Function**:
-  - Live-validated MLB API shape: `https://statsapi.mlb.com/api/v1/standings?leagueId=104&season=<year>` returns Brewers (id 158) at `records[].teamRecords[]` with `wins`, `losses`, `winningPercentage`, `gamesBack`, `divisionRank`, `leagueRank`, `runDifferential`, `streak.streakCode`, and `records.splitRecords[type='lastTen']`. Today's row: 13-13, .500, 4.5 GB, last10 5-5, streak L4.
-  - `supabase/functions/sync-standings/index.ts` written — Deno + supabase-js, parses MLB response, upserts on `(team_id, snapshot_date)`. Snapshot date computed in America/Chicago so 11pm Brewers-local stays on the right calendar day.
-  - **`verify_jwt: false`** with custom `CRON_SECRET` header gate (per Supabase MCP workflow gotcha #1: ES256 signed JWTs from `sb_publishable_*` keys can't be verified at the gateway, silently 401s).
-  - Deployed via MCP. Test invocation: HTTP 200 in 676ms, row landed in `standings_snapshot`. Auth gate verified: missing or wrong `x-cron-secret` returns 401.
-  - Security advisor clean (`lints: []`).
-  - **Cadence: daily** (per SPEC.md §14). The `(team_id, snapshot_date)` PK already collapses any sub-daily runs into a single row, so hourly would just overwrite 24× a day for no benefit.
-  - **Manual TODO — schedule setup.** MCP doesn't expose schedule creation. Ryan to add a daily schedule via Dashboard (cron `0 13 * * *` = 1pm UTC = 8am CDT / 7am CST — late enough that all West Coast games from the previous calendar day are final).
+- [x] **Task #6 complete — sync-standings Edge Function** (commits `8817cf6`, `d213b67`)
+  - MLB API shape live-validated. Daily cron (cron `0 13 * * *`) installed by Ryan in the Dashboard with the `x-cron-secret` header. Function returns 200 + parsed Brewers row in ~600ms; 401 on missing/wrong header.
+  - Cadence corrected from initial "hourly" to "daily" mid-task: the PK collapses sub-daily runs anyway, and SPEC §14 already specced daily.
+- [x] **Task #7 complete — frontend pages** (commits `8667d18`, `09526e2`, `298faaa`)
+  - 7a — Routing scaffold + auth context + Layout shell with mobile bottom nav (≥56px touch targets, safe-area inset) and desktop top nav.
+  - 7b — Magic-link login at `/login`, ProtectedRoute gate, sign-out in top nav + mobile pill. SPEC §13 updated to reflect open registration (allowlist dropped) and Google OAuth deferred to Phase 5 (needs verified consent screen, which needs a real domain + privacy policy).
+  - 7c — Profile setup gate at `/profile/setup`, ProfileProvider/useProfile/ProfileGate plumbing.
+  - 7d — Predictions page: live-validated form with the trigger-stamped `team_record_at_submission`, locked-in display when already submitted.
+  - 7e — Leaderboard at `/predictions/leaderboard`: PostgREST embed of profiles into predictions, sort by closeness to on-pace projection per SPEC §9. Card-list (vertical-axis visualization deferred).
+  - 7f — Home page polish skipped (the 7a card was already in good shape).
+- [x] **Task #8 complete — PWA** (commit `375a19b`)
+  - 8a — Source SVG icon (BFH navy/gold monogram) + generated icon set via `@vite-pwa/assets-generator`, manifest wired through `vite-plugin-pwa`.
+  - 8b — Service worker with Workbox runtime caching (CacheFirst for Google Fonts, NetworkFirst with 5min TTL + 5s timeout for Supabase REST). Auth and Realtime intentionally fall through to NetworkOnly.
+  - 8c — Mobile install hint banner. Android: captures `beforeinstallprompt`, shows gold "Install" button. iOS: explanatory hint pointing at Share → Add to Home Screen (no API on iOS). Dismissal persisted in localStorage.
 
-### Next up
+### Deferred
 
-- [ ] **One-time manual step:** add daily schedule for `sync-standings` via Supabase Dashboard (cron `0 13 * * *`, header `x-cron-secret: <CRON_SECRET>`).
-- [ ] Frontend pages: login, predictions, leaderboard, home (task #7).
-- [ ] Schema migration via `supabase-agent` (task #5)
-- [ ] Edge Function: `sync-standings` (task #6)
-- [ ] Frontend pages: login, predictions, leaderboard, home (task #7)
-- [ ] PWA manifest + service worker (task #8)
-- [ ] Manual end-to-end test (task #9)
-- [ ] Spawn 3-teammate phase-review team — Recipe 3 (task #10)
+- **Task #9 — formal manual end-to-end test pass.** Ryan tested every sub-step interactively as we built it. A formal cross-device pass is a good idea before sharing the link with family but doesn't need to gate Phase 2 work.
+- **Task #10 — agent team phase review.** Skipped for now; Ryan is the only user so far and Phase 1 hasn't been deployed. Worth running before Phase 1 is shared with family or before Phase 3 (live tracker is the first user-facing feature where bugs would be visible to multiple people).
+- **Vercel / Hetzner deployment.** Deferred until later phases ship. Phase 2 development happens locally; nothing in Phase 2 requires a deploy. Revisit at end of Phase 3 (when the FastAPI poller arrives — the poller needs a real host, not localhost).
 
 ---
 
-## Resume instructions (for the next Claude session)
+## Lessons learned (carry these into Phase 2 and beyond)
 
-We're picking up mid-task-#3 after a Node upgrade. The scaffold is on disk; only the smoke test remains for #3.
-
-### Step 1 — Confirm Node ≥ 22.12 is active
-
-In the new terminal:
-
-```bash
-node --version    # expect v22.12.x or higher
-```
-
-If still showing 22.9 or older, see "Decisions log → nvm-windows on a machine with prior MSI Node install" below.
-
-### Step 2 — Paste this prompt to Claude
-
-> Resuming Phase 1 of Brewers Family Hub at task #3 smoke test. Read `docs/PHASE_1_PROGRESS.md` for context. From `web/`, run `npm install` (lockfile may need rebuilding now that Node is current) then `npm run dev` and confirm the page loads at the dev URL. Then move on to task #4 (scaffold `supabase/`).
-
-### Sanity checks Claude should run on resume
-
-- `node --version` → ≥ 22.12.0
-- `git log --oneline` → should show at least `675fcfb` and `85a8f91`
-- `git check-ignore -v web/.env.local` → matched by `web/.gitignore` (`*.local`)
-- `cat web/.env.local` → has `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
-- Read `MEMORY.md` → should have the Supabase project entry
-
-If `web/.env.local` is missing, restore it from the values in the Supabase project memory entry.
+- **Always preflight the Supabase MCP project ref** — the `supabase-mcp-workflow` skill caught that our captured credentials were pointing at a different project (`superloser-tracker`) before any migration ran. Trust `get_project`, not whatever ref happens to be in memory or env.
+- **`verify_jwt: false` + custom header gate is the right pattern for cron-driven Edge Functions** under the new `sb_publishable_*` key format. ES256 signing breaks the gateway's `verify_jwt: true` mode silently. The `CRON_SECRET` in memory is reusable for any future cron function.
+- **Migrations are immutable post-apply** — when the security advisor flagged `validate_prediction_range` for a mutable search_path, we shipped `0002` rather than editing `0001`. Build that habit; it scales.
+- **vite-plugin-pwa lags Vite major versions on peer-deps.** It works fine, but you'll need `--legacy-peer-deps` to install on Vite 8+. Not a bug; just the upstream plugin's pace.
+- **Step-by-step beats agent teams** for everything we did in Phase 1. The agent-team recipes in CLAUDE.md become useful starting Phase 3 (genuinely independent tracks). Keep the single-session habit by default.
+- **Mobile-first is not an afterthought.** The 56px touch targets, the safe-area inset on the bottom nav, the install hint stacking math — all of that came from designing for 375px first and letting desktop fall out from there. Stay disciplined about this in Phase 2.
 
 ---
 
