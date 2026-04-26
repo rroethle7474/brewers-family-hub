@@ -476,13 +476,27 @@ Functions:
 
 ## 13. Security & Privacy
 
-- Family-only: signup is **invite-link based** (admin generates one-time signup tokens)
-- All routes require auth except `/login`
-- RLS enabled on every table
-- Predictions: insert-once for own row; admin can override
-- Comments: own row mutable; admin can delete any
-- No PII stored beyond email (handled by Supabase auth) and display name
-- Avatars uploaded to Supabase Storage with size/type validation
+- **Signup model: open registration to anyone with the URL.** Originally specced as
+  invite-link-based with admin-generated one-time tokens. That was reversed
+  early in Phase 1 because (a) the audience skews older / less technical and
+  any extra registration step is a real cost, (b) the owner doesn't have
+  every family member's current email, and addresses change, so an explicit
+  allowlist is operational overhead, and (c) the data is low-stakes — Brewers
+  predictions and shoutbox chatter, no real PII beyond display name. The URL
+  is unlisted (circulated by family text/email, not indexed); RLS enforces
+  that even an outsider who stumbles in can only read public data and write
+  rows they own. If "open" ever feels too loose, an admin-approval queue
+  (new users in `pending` until owner approves) is the cheap follow-up.
+- **Auth method (Phase 1): Supabase magic link only.** Google OAuth is
+  deferred to Phase 5 — running it cleanly requires a verified Google
+  consent screen, which needs a real domain + privacy policy URL. Easier
+  to do once the app is deployed than while we're still on `localhost`.
+- All routes require auth except `/login`.
+- RLS enabled on every table.
+- Predictions: insert-once for own row; admin can override (Phase 5).
+- Comments: own row mutable; admin can delete any.
+- No PII stored beyond email (handled by Supabase auth) and display name.
+- Avatars uploaded to Supabase Storage with size/type validation.
 
 ---
 
