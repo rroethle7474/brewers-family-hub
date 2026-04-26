@@ -4,7 +4,7 @@ Living doc tracking what's done, what's next, and how to resume across Claude se
 
 ---
 
-## Status: 🟢 Task #3 complete — scaffold verified, ready for task #4
+## Status: 🟢 Task #5 complete — schema applied, RLS clean, types generated. Ready for task #6 (`sync-standings` Edge Function).
 
 Last updated: 2026-04-26
 
@@ -32,10 +32,22 @@ Last updated: 2026-04-26
 - [x] `web/.env.example` added (safe to commit) for future contributors
 
 - [x] **Task #3 smoke test** — Node upgraded to v24.15.0 via nvm-windows (after uninstalling prior MSI Node install). `npm run build` clean (191KB JS / 60KB gzip). `npm run dev` boots in 344ms. Page renders correctly in Chrome with Bricolage Grotesque headline, Inter body, and the three Brewers swatches.
+- [x] **Task #3 committed** — `7a6d583 feat: scaffold web/ with Vite 9 + React 19 + Tailwind v4`
+- [x] **Task #4 complete — `supabase/` skeleton**:
+  - `supabase/config.toml` with `project_id = "vxnocwzuoctszydrtzbl"` (compatible with what `supabase init` would generate)
+  - `supabase/README.md` documenting migration / function / RLS conventions from CLAUDE.md
+  - `supabase/migrations/` and `supabase/functions/` directories with `.gitkeep`
+  - **Supabase CLI not installed locally** — winget rolled back silently. Working through the Supabase MCP for Phase 1 (migrations, RLS, Edge Functions, type generation). CLI install can wait until Phase 3 when local function dev becomes useful.
+- [x] **Task #5 complete — schema migration**:
+  - `supabase-mcp-workflow` skill caught a project-ref mismatch in preflight: the credentials we'd been carrying pointed at `superloser-tracker`, not `brewers-family-hub`. Fixed across `web/.env.local`, `supabase/config.toml`, and the project memory file before any SQL ran. Correct ref is `vxnocwzuoctszydrtzbl` (us-east-1).
+  - Migration `0001_phase1_schema` applied: 4 tables (`profiles`, `predictions`, `standings_snapshot`, `games`), all RLS-enabled, with policies per SPEC.md §13. Two triggers: `prevent_admin_self_promotion` (column-level guard on `is_admin`) and `validate_prediction_range` (server-side enforcement of SPEC §5 valid-range rule).
+  - Migration `0002_lock_validate_prediction_range_search_path` applied to fix a `function_search_path_mutable` advisor finding (WARN-level). Pinned `search_path = public, pg_temp` on the prediction validator. Security advisor now clean (`lints: []`).
+  - Generated `web/src/lib/database.types.ts` from the public schema. Verified it satisfies `GenericSchema` (gotcha #3 from the Supabase MCP workflow skill: `__InternalSupabase`, `Views`, `Functions`, `Relationships` all present).
+  - Wired the Supabase client to use the generated types: `createClient<Database>` in `web/src/lib/supabase.ts`. `npx tsc -b` clean.
 
 ### Next up
 
-- [ ] Scaffold `supabase/` directory structure (task #4)
+- [ ] Edge Function: `sync-standings` — hourly, pulls Brewers (team_id 158) standings from MLB API, upserts into `standings_snapshot`. Needed before predictions can be submitted (the `validate_prediction_range` trigger requires at least one row in `standings_snapshot`). (task #6)
 - [ ] Schema migration via `supabase-agent` (task #5)
 - [ ] Edge Function: `sync-standings` (task #6)
 - [ ] Frontend pages: login, predictions, leaderboard, home (task #7)

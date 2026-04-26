@@ -1,0 +1,15 @@
+# Supabase local config — committed to the repo.
+#
+# This file is what `supabase init` would generate. We kept it minimal on
+# purpose: the only thing other Supabase tooling needs from us today is the
+# project ref. When the CLI is installed locally later, running
+#
+#     supabase link
+#
+# from this directory will associate the working tree with the cloud project
+# below. To expand this file with sane defaults for studio/api/db/auth,
+# the simplest path is to back it up, run `supabase init`, then merge any
+# field we care about back in.
+#
+# Project: brewers-family-hub  (us-east-1 — N. Virginia)
+project_id = "vxnocwzuoctszydrtzbl"
