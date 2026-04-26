@@ -4,7 +4,7 @@ Living doc tracking what's done, what's next, and how to resume across Claude se
 
 ---
 
-## Status: 🟢 Task #5 complete — schema applied, RLS clean, types generated. Ready for task #6 (`sync-standings` Edge Function).
+## Status: 🟢 Task #6 complete (function deployed + verified) — schedule still TODO via Dashboard. Ready for task #7 (frontend pages).
 
 Last updated: 2026-04-26
 
@@ -45,9 +45,18 @@ Last updated: 2026-04-26
   - Generated `web/src/lib/database.types.ts` from the public schema. Verified it satisfies `GenericSchema` (gotcha #3 from the Supabase MCP workflow skill: `__InternalSupabase`, `Views`, `Functions`, `Relationships` all present).
   - Wired the Supabase client to use the generated types: `createClient<Database>` in `web/src/lib/supabase.ts`. `npx tsc -b` clean.
 
+- [x] **Task #6 complete — sync-standings Edge Function**:
+  - Live-validated MLB API shape: `https://statsapi.mlb.com/api/v1/standings?leagueId=104&season=<year>` returns Brewers (id 158) at `records[].teamRecords[]` with `wins`, `losses`, `winningPercentage`, `gamesBack`, `divisionRank`, `leagueRank`, `runDifferential`, `streak.streakCode`, and `records.splitRecords[type='lastTen']`. Today's row: 13-13, .500, 4.5 GB, last10 5-5, streak L4.
+  - `supabase/functions/sync-standings/index.ts` written — Deno + supabase-js, parses MLB response, upserts on `(team_id, snapshot_date)`. Snapshot date computed in America/Chicago so 11pm Brewers-local stays on the right calendar day.
+  - **`verify_jwt: false`** with custom `CRON_SECRET` header gate (per Supabase MCP workflow gotcha #1: ES256 signed JWTs from `sb_publishable_*` keys can't be verified at the gateway, silently 401s).
+  - Deployed via MCP. Test invocation: HTTP 200 in 676ms, row landed in `standings_snapshot`. Auth gate verified: missing or wrong `x-cron-secret` returns 401.
+  - Security advisor clean (`lints: []`).
+  - **Manual TODO — schedule setup.** MCP doesn't expose schedule creation. Ryan to add an hourly schedule via Dashboard before declaring task #6 fully shipped (instructions in this session's chat).
+
 ### Next up
 
-- [ ] Edge Function: `sync-standings` — hourly, pulls Brewers (team_id 158) standings from MLB API, upserts into `standings_snapshot`. Needed before predictions can be submitted (the `validate_prediction_range` trigger requires at least one row in `standings_snapshot`). (task #6)
+- [ ] **One-time manual step:** add hourly schedule for `sync-standings` via Supabase Dashboard (cron `0 * * * *`, header `x-cron-secret: <CRON_SECRET>`).
+- [ ] Frontend pages: login, predictions, leaderboard, home (task #7).
 - [ ] Schema migration via `supabase-agent` (task #5)
 - [ ] Edge Function: `sync-standings` (task #6)
 - [ ] Frontend pages: login, predictions, leaderboard, home (task #7)
