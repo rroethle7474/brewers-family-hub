@@ -328,12 +328,21 @@ A single async loop checks every 30s whether any game is live. If yes, polls; if
 
 | Function | Schedule | Purpose |
 |---|---|---|
-| `sync-schedule` | Daily 4am CT | Pull/upsert next 14 days of games |
-| `sync-standings` | Hourly | Refresh `standings_snapshot` |
+| `sync-schedule` | Daily `0 13 * * *` UTC | Pull/upsert today-14d to today+30d of Brewers games |
+| `sync-standings` | Daily `0 13 * * *` UTC | Refresh `standings_snapshot` for all NL teams |
 | `sync-player-stats` | Daily 5am CT | Refresh season stat lines for active 40-man + key minors |
 | `sync-minors` | Daily 7am CT | Pull affiliate game results, top prospect lines |
 | `pull-news` | Every 30 min | RSS aggregation from configured feeds |
 | `notify-mentions` | Every 5 min | Email pending unnotified mentions |
+
+> Phase 2 cadence reality check: `sync-standings` was originally specced
+> "hourly" and `sync-schedule` "daily 4am CT". Both were resolved to a
+> single shared daily cron at `0 13 * * *` UTC (≈ 7am CST / 8am CDT) once
+> we discovered the standings PK is one row per team per day — sub-daily
+> runs collapse on the same key. Co-scheduling with `sync-schedule` is
+> fine; the two functions read different MLB API endpoints and write to
+> different tables. Phase 2 also extended `sync-standings` to write all
+> 15 NL teams from a single MLB call (the API returns the whole league).
 
 ---
 

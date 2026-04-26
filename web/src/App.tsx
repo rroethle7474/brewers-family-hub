@@ -8,6 +8,9 @@ import { Home } from './routes/Home'
 import { Login } from './routes/Login'
 import { Predictions } from './routes/Predictions'
 import { Leaderboard } from './routes/Leaderboard'
+import { Standings } from './routes/Standings'
+import { Schedule } from './routes/Schedule'
+import { GameDetail } from './routes/GameDetail'
 import { ProfileSetup } from './routes/ProfileSetup'
 
 function App() {
@@ -33,6 +36,9 @@ function App() {
                     path="/predictions/leaderboard"
                     element={<Leaderboard />}
                   />
+                  <Route path="/standings" element={<Standings />} />
+                  <Route path="/schedule" element={<Schedule />} />
+                  <Route path="/games/:gamePk" element={<GameDetail />} />
                 </Route>
               </Route>
             </Route>

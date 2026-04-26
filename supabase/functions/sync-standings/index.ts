@@ -1,11 +1,14 @@
 // supabase/functions/sync-standings/index.ts
 //
-// Daily cron pulls Brewers standings from the MLB Stats API and upserts a
-// row into public.standings_snapshot, keyed on (team_id, snapshot_date).
-// Daily matches the table's natural granularity (the PK is one row per
-// team per day) and matches SPEC.md §14 ("Standings ingestion, daily").
-// The function is the only path standings get into the DB; the table has
-// no INSERT/UPDATE/DELETE policy, so only the service-role key works.
+// Daily cron pulls the AL + NL standings from the MLB Stats API and upserts
+// one row per team per day into public.standings_snapshot, keyed on
+// (team_id, snapshot_date). The /standings page renders NL first (Brewers
+// focus) and AL second; one MLB call covers both leagues.
+//
+// Daily cadence matches the table's natural granularity (PK is one row per
+// team per day) and SPEC.md §14 ("Standings ingestion, daily"). This function
+// is the only path standings get into the DB; the table has no INSERT/UPDATE/
+// DELETE policy, so only the service-role key works.
 //
 // Why this function gates on a cron secret instead of verify_jwt:
 //   1. There's no end user — it's server-to-server (Supabase scheduler ->
@@ -24,7 +27,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const BREWERS_TEAM_ID = 158;
+const AL_LEAGUE_ID = 103;
 const NL_LEAGUE_ID = 104;
 
 const supabaseAdmin = createClient(
@@ -68,6 +71,23 @@ function todayInCentral(): string {
   }).format(new Date());
 }
 
+// deno-lint-ignore no-explicit-any
+function rowFromTeamRecord(tr: any, snapshotDate: string) {
+  return {
+    team_id: tr.team?.id as number,
+    snapshot_date: snapshotDate,
+    wins: tr.wins ?? 0,
+    losses: tr.losses ?? 0,
+    pct: parseFloatOrNull(tr.winningPercentage),
+    games_back: parseFloatOrNull(tr.gamesBack),
+    division_rank: parseIntOrNull(tr.divisionRank),
+    league_rank: parseIntOrNull(tr.leagueRank),
+    run_diff: typeof tr.runDifferential === "number" ? tr.runDifferential : null,
+    last_10: findLastTen(tr.records?.splitRecords),
+    streak: tr.streak?.streakCode ?? null,
+  };
+}
+
 Deno.serve(async (req) => {
   const cronSecret = Deno.env.get("CRON_SECRET");
   if (!cronSecret) {
@@ -80,7 +100,7 @@ Deno.serve(async (req) => {
 
   const season = new Date().getUTCFullYear();
   const url =
-    `https://statsapi.mlb.com/api/v1/standings?leagueId=${NL_LEAGUE_ID}&season=${season}`;
+    `https://statsapi.mlb.com/api/v1/standings?leagueId=${AL_LEAGUE_ID},${NL_LEAGUE_ID}&season=${season}`;
 
   let mlbResp: Response;
   try {
@@ -97,49 +117,35 @@ Deno.serve(async (req) => {
   }
   const data = await mlbResp.json();
 
-  // deno-lint-ignore no-explicit-any
-  let brewers: any = null;
+  const snapshotDate = todayInCentral();
+  const rows: ReturnType<typeof rowFromTeamRecord>[] = [];
   for (const rec of data.records ?? []) {
     for (const tr of rec.teamRecords ?? []) {
-      if (tr.team?.id === BREWERS_TEAM_ID) {
-        brewers = tr;
-        break;
-      }
+      if (typeof tr.team?.id !== "number") continue;
+      rows.push(rowFromTeamRecord(tr, snapshotDate));
     }
-    if (brewers) break;
   }
 
-  if (!brewers) {
+  if (rows.length === 0) {
     return Response.json(
-      { error: `Brewers (id ${BREWERS_TEAM_ID}) not in standings response` },
+      { error: "No team records returned by MLB API" },
       { status: 502 },
     );
   }
 
-  const row = {
-    team_id: BREWERS_TEAM_ID,
-    snapshot_date: todayInCentral(),
-    wins: brewers.wins ?? 0,
-    losses: brewers.losses ?? 0,
-    pct: parseFloatOrNull(brewers.winningPercentage),
-    games_back: parseFloatOrNull(brewers.gamesBack),
-    division_rank: parseIntOrNull(brewers.divisionRank),
-    league_rank: parseIntOrNull(brewers.leagueRank),
-    run_diff: typeof brewers.runDifferential === "number"
-      ? brewers.runDifferential
-      : null,
-    last_10: findLastTen(brewers.records?.splitRecords),
-    streak: brewers.streak?.streakCode ?? null,
-  };
-
   const { error } = await supabaseAdmin
     .from("standings_snapshot")
-    .upsert(row, { onConflict: "team_id,snapshot_date" });
+    .upsert(rows, { onConflict: "team_id,snapshot_date" });
 
   if (error) {
     console.error("upsert failed", error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  return Response.json({ ok: true, row });
+  return Response.json({
+    ok: true,
+    snapshot_date: snapshotDate,
+    rows_upserted: rows.length,
+    team_ids: rows.map((r) => r.team_id),
+  });
 });

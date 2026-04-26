@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, TrendingUp, Trophy } from 'lucide-react'
+import { CalendarDays, Home, TrendingUp, Trophy } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 interface ItemProps {
@@ -40,6 +40,7 @@ export function BottomNav() {
     >
       <div className="flex items-stretch justify-around">
         <Item to="/" end icon={Home} label="Home" />
+        <Item to="/schedule" icon={CalendarDays} label="Schedule" />
         <Item to="/predictions" end icon={TrendingUp} label="Picks" />
         <Item to="/predictions/leaderboard" icon={Trophy} label="Board" />
       </div>

@@ -23,6 +23,12 @@ export function TopNav() {
           <NavLink to="/" end className={linkClass}>
             Home
           </NavLink>
+          <NavLink to="/schedule" className={linkClass}>
+            Schedule
+          </NavLink>
+          <NavLink to="/standings" className={linkClass}>
+            Standings
+          </NavLink>
           <NavLink to="/predictions" end className={linkClass}>
             Predictions
           </NavLink>
