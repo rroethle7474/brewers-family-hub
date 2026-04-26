@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { TopNav } from './TopNav'
 import { BottomNav } from './BottomNav'
+import { InstallHint } from './InstallHint'
 import { useAuth } from '../lib/useAuth'
 
 export function Layout() {
@@ -12,6 +13,12 @@ export function Layout() {
       <main className="flex-1 pb-24 md:pb-8">
         <Outlet />
       </main>
+
+      {/* Stacked above the bottom nav on mobile, in this z-order:
+          - InstallHint (top, only when applicable + not dismissed)
+          - sign-out pill (middle)
+          - BottomNav itself (bottom)                                   */}
+      <InstallHint />
 
       {/* Mobile sign-out footer — discoverable without crowding the bottom nav.
           Hidden on desktop; the top nav already has a sign-out button. */}
