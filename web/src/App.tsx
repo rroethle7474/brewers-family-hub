@@ -1,18 +1,27 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './lib/AuthProvider'
+import { Layout } from './components/Layout'
+import { Home } from './routes/Home'
+import { Login } from './routes/Login'
+import { Predictions } from './routes/Predictions'
+import { Leaderboard } from './routes/Leaderboard'
+
 function App() {
   return (
-    <main className="min-h-[100svh] flex flex-col items-center justify-center p-6 text-center">
-      <h1 className="text-4xl md:text-6xl font-semibold text-navy">
-        Brewers Family Hub
-      </h1>
-      <p className="mt-4 text-text-muted max-w-md">
-        Phase 1 scaffold is up. Auth and predictions land next.
-      </p>
-      <div className="mt-8 flex gap-2">
-        <span className="inline-block w-6 h-6 rounded-full bg-navy" />
-        <span className="inline-block w-6 h-6 rounded-full bg-gold" />
-        <span className="inline-block w-6 h-6 rounded-full bg-gold-deep" />
-      </div>
-    </main>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* /login is the only un-shelled route; everything else lives inside Layout. */}
+          <Route path="/login" element={<Login />} />
+
+          <Route element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="/predictions" element={<Predictions />} />
+            <Route path="/predictions/leaderboard" element={<Leaderboard />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
