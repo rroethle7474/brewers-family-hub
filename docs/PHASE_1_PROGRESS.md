@@ -51,11 +51,12 @@ Last updated: 2026-04-26
   - **`verify_jwt: false`** with custom `CRON_SECRET` header gate (per Supabase MCP workflow gotcha #1: ES256 signed JWTs from `sb_publishable_*` keys can't be verified at the gateway, silently 401s).
   - Deployed via MCP. Test invocation: HTTP 200 in 676ms, row landed in `standings_snapshot`. Auth gate verified: missing or wrong `x-cron-secret` returns 401.
   - Security advisor clean (`lints: []`).
-  - **Manual TODO — schedule setup.** MCP doesn't expose schedule creation. Ryan to add an hourly schedule via Dashboard before declaring task #6 fully shipped (instructions in this session's chat).
+  - **Cadence: daily** (per SPEC.md §14). The `(team_id, snapshot_date)` PK already collapses any sub-daily runs into a single row, so hourly would just overwrite 24× a day for no benefit.
+  - **Manual TODO — schedule setup.** MCP doesn't expose schedule creation. Ryan to add a daily schedule via Dashboard (cron `0 13 * * *` = 1pm UTC = 8am CDT / 7am CST — late enough that all West Coast games from the previous calendar day are final).
 
 ### Next up
 
-- [ ] **One-time manual step:** add hourly schedule for `sync-standings` via Supabase Dashboard (cron `0 * * * *`, header `x-cron-secret: <CRON_SECRET>`).
+- [ ] **One-time manual step:** add daily schedule for `sync-standings` via Supabase Dashboard (cron `0 13 * * *`, header `x-cron-secret: <CRON_SECRET>`).
 - [ ] Frontend pages: login, predictions, leaderboard, home (task #7).
 - [ ] Schema migration via `supabase-agent` (task #5)
 - [ ] Edge Function: `sync-standings` (task #6)

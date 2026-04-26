@@ -1,10 +1,11 @@
 // supabase/functions/sync-standings/index.ts
 //
-// Hourly cron pulls Brewers standings from the MLB Stats API and upserts a
-// row into public.standings_snapshot. The (team_id, snapshot_date) primary
-// key means hourly runs on the same day overwrite the same row — by design.
-// The function is the only path standings get into the DB; the table has no
-// INSERT/UPDATE/DELETE policy, so only the service-role key works.
+// Daily cron pulls Brewers standings from the MLB Stats API and upserts a
+// row into public.standings_snapshot, keyed on (team_id, snapshot_date).
+// Daily matches the table's natural granularity (the PK is one row per
+// team per day) and matches SPEC.md §14 ("Standings ingestion, daily").
+// The function is the only path standings get into the DB; the table has
+// no INSERT/UPDATE/DELETE policy, so only the service-role key works.
 //
 // Why this function gates on a cron secret instead of verify_jwt:
 //   1. There's no end user — it's server-to-server (Supabase scheduler ->
