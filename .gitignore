@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# Production builds
+web/dist/
+web/build/
+web/.vite/
+
+# Local env files (NEVER commit these)
+.env
+.env.local
+.env.*.local
+**/.env
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# Python (poller)
+poller/__pycache__/
+poller/*.pyc
+poller/.venv/
+poller/venv/
+poller/.pytest_cache/
+poller/*.egg-info/
+
+# Fly.io
+poller/fly.toml.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Claude Code local state (don't commit; teammate state is per-machine)
+# But DO commit .claude/agents/ and .claude/settings.json
+.claude/teams/
+.claude/tasks/
+
+# Coverage
+coverage/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
