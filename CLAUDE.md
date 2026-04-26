@@ -95,6 +95,21 @@ brewers-family-hub/
 - Edge Functions: `kebab-case` directories (`sync-standings/`)
 - Migrations: `NNNN_short_description.sql` (zero-padded 4 digits)
 
+### Local Development
+
+- **Frontend dev server is locked to port 5173.** `vite.config.ts` sets
+  `server: { port: 5173, strictPort: true }` so Vite fails loudly instead of
+  silently auto-incrementing to 5174/5175 when 5173 is busy.
+- **`npm run dev` automatically frees port 5173** before starting via a
+  `predev` script (`kill-port 5173`). This kills any stale Vite process from
+  a previous session — no more zombies piling up across runs.
+- **Frontend URL validation cadence — backend tasks: skip; UI tasks: every time.**
+  For schema migrations, Edge Functions, and other backend-only work, validate
+  via SQL/dashboard/curl — don't open the dev URL. For any task that touches
+  React components or routes, open `http://localhost:5173/` and click through
+  the changed flow before declaring it done. Mobile-first means at minimum a
+  375px-wide viewport check.
+
 ## Mobile & PWA Requirements
 
 These are not optional. Treat them as acceptance criteria for every UI ticket.
