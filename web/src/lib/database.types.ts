@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      big_moments: {
+        Row: {
+          created_at: string
+          description: string
+          game_id: number
+          id: string
+          inning: number | null
+          moment_type: string
+          player_id: number | null
+          wp_after: number | null
+          wp_before: number | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          game_id: number
+          id?: string
+          inning?: number | null
+          moment_type: string
+          player_id?: number | null
+          wp_after?: number | null
+          wp_before?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          game_id?: number
+          id?: string
+          inning?: number | null
+          moment_type?: string
+          player_id?: number | null
+          wp_after?: number | null
+          wp_before?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "big_moments_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          game_id: number | null
+          id: string
+          is_hot_take: boolean
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          game_id?: number | null
+          id?: string
+          is_hot_take?: boolean
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          game_id?: number | null
+          id?: string
+          is_hot_take?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           away_score: number | null
@@ -74,6 +166,65 @@ export type Database = {
         }
         Relationships: []
       }
+      live_game_state: {
+        Row: {
+          away_score: number | null
+          balls: number | null
+          bases: Json | null
+          current_batter_id: number | null
+          current_pitcher_id: number | null
+          game_id: number
+          home_score: number | null
+          inning: number | null
+          inning_state: string | null
+          outs: number | null
+          recent_plays: Json | null
+          strikes: number | null
+          updated_at: string
+          win_probability: number | null
+        }
+        Insert: {
+          away_score?: number | null
+          balls?: number | null
+          bases?: Json | null
+          current_batter_id?: number | null
+          current_pitcher_id?: number | null
+          game_id: number
+          home_score?: number | null
+          inning?: number | null
+          inning_state?: string | null
+          outs?: number | null
+          recent_plays?: Json | null
+          strikes?: number | null
+          updated_at?: string
+          win_probability?: number | null
+        }
+        Update: {
+          away_score?: number | null
+          balls?: number | null
+          bases?: Json | null
+          current_batter_id?: number | null
+          current_pitcher_id?: number | null
+          game_id?: number
+          home_score?: number | null
+          inning?: number | null
+          inning_state?: string | null
+          outs?: number | null
+          recent_plays?: Json | null
+          strikes?: number | null
+          updated_at?: string
+          win_probability?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_game_state_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: true
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       predictions: {
         Row: {
           id: string
@@ -129,6 +280,45 @@ export type Database = {
           is_admin?: boolean
         }
         Relationships: []
+      }
+      reactions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          emoji: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          emoji: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       standings_snapshot: {
         Row: {

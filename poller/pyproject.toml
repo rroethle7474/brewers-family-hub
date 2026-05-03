@@ -1,0 +1,35 @@
+[project]
+name = "brewers-poller"
+version = "0.1.0"
+description = "FastAPI live-game poller for Brewers Family Hub"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "httpx>=0.27",
+    "MLB-StatsAPI>=1.7",
+    "supabase>=2.5",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.2",
+    "tenacity>=8.2",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Flat-layout service — all .py files at the root are the "package".
+# Hatchling needs an explicit packages list for flat (non-src) layouts.
+packages = ["."]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

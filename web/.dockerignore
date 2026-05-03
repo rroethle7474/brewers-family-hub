@@ -1,0 +1,32 @@
+# Files NOT copied into the build context.
+# These are either rebuilt inside the image or are local-only secrets.
+
+node_modules
+dist
+.vite
+
+# Local secrets — must NEVER end up inside the image. .gitignore already
+# protects the repo; .dockerignore protects local `docker build` runs from
+# leaking these into image layers.
+.env
+.env.local
+.env.*.local
+
+# Editor / OS junk
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Git metadata isn't needed inside the image
+.git
+.gitignore
+
+# Nothing in here belongs at runtime
+README.md

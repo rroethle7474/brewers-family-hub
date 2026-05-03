@@ -1,0 +1,39 @@
+# Files NOT copied into the build context.
+# .venv is the big one — it's a Windows venv locally and would break or
+# bloat a Linux container. uv recreates it inside the image via uv sync.
+
+.venv
+__pycache__
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Test suite — not needed at runtime.
+tests
+.pytest_cache
+.coverage
+htmlcov
+
+# Local secrets — must NEVER end up inside the image.
+.env
+.env.local
+.env.*.local
+
+# Editor / OS junk
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Git metadata
+.git
+.gitignore
+
+# Doc — not needed at runtime
+README.md
