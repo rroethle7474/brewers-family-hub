@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-RECENT_PLAYS_COUNT = 20  # how many plays to keep in recent_plays jsonb
+RECENT_PLAYS_COUNT = 30  # how many plays to keep in recent_plays jsonb (matches Home WP sparkline window)
 
 
 class LiveGameStateRow(BaseModel):

@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom'
 import { CalendarDays, ListOrdered, TrendingUp, Trophy } from 'lucide-react'
+import { LiveGameHero } from '../components/LiveGameHero/LiveGameHero'
 
 export function Home() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 md:py-12">
+    <div className="mx-auto max-w-2xl px-4 py-8 md:py-12 space-y-5">
+      <LiveGameHero />
+
       <div className="rounded-2xl bg-surface border border-border p-6 md:p-8 shadow-sm">
         <p className="text-sm font-medium text-gold-deep uppercase tracking-wider">
           2026 Season
