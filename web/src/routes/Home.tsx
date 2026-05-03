@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { CalendarDays, ListOrdered, TrendingUp, Trophy } from 'lucide-react'
 import { LiveGameHero } from '../components/LiveGameHero/LiveGameHero'
+import { Shoutbox } from '../components/Shoutbox/Shoutbox'
 
 export function Home() {
   return (
@@ -50,6 +51,8 @@ export function Home() {
           </Link>
         </div>
       </div>
+
+      <Shoutbox />
     </div>
   )
 }

@@ -6,7 +6,7 @@ end of each session.
 
 ---
 
-## Status: 🚧 Steps 1–7 complete (deploys live). Next: step 8 (Shoutbox + reactions + big-moment cards).
+## Status: 🚧 Steps 1–8 complete. Next: step 9 (Recipe 3 review team + cron install before merge).
 
 Last updated: 2026-05-03
 
@@ -164,6 +164,51 @@ Last updated: 2026-05-03
       Two new follow-ups generated: tasks #14 (lazy-load recharts —
       bundle hit 784 KB / 229 KB gzipped), #15 (PWA meta deprecation
       in `web/index.html:13`).
+- [x] **Step 8 — Shoutbox + reactions + auto big-moment cards
+      (2026-05-03).** Family-only chat now lives at the bottom of Home.
+      Eight new modules in `web/src/components/Shoutbox/`:
+      - `useShoutboxFeed.ts` — fetches newest 50 shoutbox comments
+        (`game_id is null and deleted_at is null`) joined to profiles
+        + today's `big_moments` (scoped via today's `games.id` set).
+        Merges chronologically. Realtime: subscribes to `comments`
+        INSERT/UPDATE (soft-delete) and `big_moments` INSERT. Profile
+        cache (`Map<userId, profile>`) means new comments from
+        previously-unseen authors do one lazy profile fetch then stay
+        hydrated. Cursor-based `loadMore` (older comments only —
+        big_moments are bounded by today). Optimistic `postComment`
+        with rollback on insert failure; Realtime echo dedupes by id.
+      - `useReactions.ts` — manages `(commentId, emoji) → {count,
+        userReacted}` map for visible comments. Subscribes once to all
+        reaction changes; on any event, refetches reactions for the
+        currently-visible comment ids (full refresh is bullet-proof
+        and avoids the Supabase Realtime DELETE-payload quirk where
+        only the PK is delivered without REPLICA IDENTITY FULL).
+        Optimistic toggle with full-refetch revert on error.
+      - `Composer.tsx` — textarea (3 rows), char counter (yellow at
+        1800, red over 2000), Cmd/Ctrl+Enter to submit, server failure
+        renders inline.
+      - `CommentCard.tsx` — initials avatar with stable per-user color
+        (palette-mod hash on user_id), display_name, relative time
+        ("just now" / "5m" / "3h" / "2d" / locale date). Body
+        whitespace preserved. Optimistic rows render at opacity-70
+        with "Posting…" timestamp.
+      - `ReactionBar.tsx` — inline pills for emojis with count > 0 or
+        user-reacted; `+` button reveals the rest of the picker
+        inline. Per design call #3.
+      - `BigMomentCard.tsx` — gold-bordered card, type label
+        (HOME RUN / LEAD CHANGE / BIG SWING / WALKOFF), description,
+        "View game →" link to `/games/:gamePk`.
+      - `Shoutbox.tsx` — orchestrator. Header + composer + feed +
+        skeleton/empty/error states + "Load older" pager.
+      Wired into `Home.tsx` below the welcome card. Verified by Ryan
+      end-to-end at 375px: empty state → optimistic post → Realtime
+      delivery → reactions toggle, no console errors, bundle held at
+      798 KB / 233 KB gzipped (+15 KB / +4 KB vs step 7 — Shoutbox is
+      pure React + supabase-js, no new heavy libs). **Big-moment-card
+      visual styling unverified end-to-end** — no qualifying moment
+      fired during the testing window. Code path is complete; first
+      live verification will come whenever the next live game produces
+      a HR / lead change / big WP swing / walkoff.
 
 ### Deferred / blocked
 
@@ -232,12 +277,13 @@ index below.)_
       win-probability sparkline; updates without manual refresh
       **(step 7 done; FullHero mode unverified under live conditions —
       needs `sync-schedule` cron for live game.status)**
-- [ ] Shoutbox: last 50 comments, "load more" pagination, Realtime
-      append **(step 8 — next)**
-- [ ] Auto big-moment cards render with gold-bordered styling, link
-      to `/games/:gamePk` **(step 8)**
-- [ ] Reactions: 👏 🔥 😂 😢 ⚾ 🍺 picker, one-per-user-per-emoji-per-
-      comment, optimistic update **(step 8)**
+- [x] Shoutbox: last 50 comments, "load more" pagination, Realtime
+      append **(step 8 done)**
+- [x] Auto big-moment cards render with gold-bordered styling, link
+      to `/games/:gamePk` **(step 8 done; live verification pending
+      first qualifying moment from the poller)**
+- [x] Reactions: 👏 🔥 😂 😢 ⚾ 🍺 picker, one-per-user-per-emoji-per-
+      comment, optimistic update **(step 8 done)**
 - [ ] Mobile-first at 375px; PWA still installs cleanly
       **(verified during step 9 review)**
 - [x] `get_advisors` security findings clean on the new tables
@@ -247,20 +293,27 @@ index below.)_
 
 ## Resume from here — start of next session
 
-1. **Phase 3 step 8 — Shoutbox + reactions + auto big-moment cards.**
-   Owns `web/src/components/Shoutbox/`. Subscribes to `comments` via
-   Realtime, renders last 50 with "load more" pagination, optimistic
-   compose. Auto big-moment cards: when a row appears in `big_moments`,
-   render a gold-bordered card in-line in the shoutbox feed linking to
-   `/games/:gamePk`. Reactions: 👏 🔥 😂 😢 ⚾ 🍺 picker, one-per-user-
-   per-emoji-per-comment, optimistic.
+1. **Install the Phase 2 cron schedules (task #10).** This is the
+   blocker that's preventing FullHero + auto big-moment cards from
+   getting live verification. Set up Dashboard cron jobs for
+   `sync-schedule` (daily) and `sync-standings` (daily). Concrete
+   curl-against-functions and Dashboard cron path were captured during
+   the step-7 session. Doing this BEFORE the review team means the
+   reviewers can actually exercise the live paths.
 
-2. **Then step 9 — Recipe 3 review team** (mandatory — see kickoff doc).
+2. **Phase 3 step 9 — Recipe 3 review team.** Mandatory before merge
+   to main per `PHASE_3_KICKOFF.md` ("first user-facing interactive
+   feature; reviewing-before-deploy isn't optional this time"). Spawn
+   3 teammates of type `phase-reviewer`: MobileUX, Security, A11y.
+   Each writes findings to `docs/reviews/phase-3-{role}.md`; lead
+   synthesizes into `phase-3-summary.md`. Address blocking issues
+   before merge.
 
-3. **At some point soon, install the cron schedules (task #10).**
-   Without them, today's `games.status` doesn't refresh from MLB and
-   the LiveGameHero's FullHero mode never gets exercised in the wild.
-   Closing #10 also fixes the standings-stale-since-April-28 issue.
+3. **Polish follow-ups that surfaced during steps 7–8** (any time):
+   tasks #1 (ADR 0001 — Coolify deploy pivot), #11 (revoke EXECUTE
+   on Phase 1 SECURITY DEFINER triggers), #12 (drop --legacy-peer-deps
+   when vite-plugin-pwa supports vite@8), #14 (lazy-load recharts),
+   #15 (PWA meta deprecation).
 
 ---
 
@@ -286,6 +339,20 @@ index below.)_
   writes the first row at game start — no refresh needed. Cost is one
   Realtime channel per Home page load while waiting for first pitch;
   acceptable for a family-only audience.
+- **Reactions full-refetch on Realtime events** (instead of delta-
+  tracking the count map). Supabase Realtime DELETE payloads only
+  include the primary key by default, so we'd need either REPLICA
+  IDENTITY FULL on `reactions` (storage cost + a migration) or a
+  refetch-on-event approach. Refetch wins for our scale: one indexed
+  `select * from reactions where comment_id in (...)` is cheap, the
+  code is bullet-proof, and we never need to reason about per-event
+  state diffs.
+- **`eslint-disable-next-line` only disables the immediately next
+  line** — the closing `}, [deps])` of a useEffect counts as its own
+  line, so a single disable can't cover both the call and the deps
+  array. Need either two disables (one above the call, one above the
+  closing brace line) or to put the disable at end-of-line on the
+  deps array.
 
 ---
 
