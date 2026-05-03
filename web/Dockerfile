@@ -18,8 +18,14 @@ ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 # Install dependencies first so Docker can cache the layer when only source
 # files change. `npm ci` is the deterministic install — it requires the
 # lockfile and package.json to be in sync, which they are for committed code.
+#
+# --legacy-peer-deps: vite-plugin-pwa@1.2.0 declares peer vite@<=7 but the
+# project is on vite@8. Locally `npm install` (looser) accepts this; `npm ci`
+# under npm@10+ enforces peer deps strictly and fails. The lockfile is fine
+# — this flag just tells npm to trust it. Drop the flag once vite-plugin-pwa
+# ships a release that lists vite@8 as a supported peer.
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund --legacy-peer-deps
 
 # Copy the rest of the source and build. The PWA plugin emits sw.js,
 # registerSW.js, manifest.webmanifest, and the icon set into dist/.
