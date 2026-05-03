@@ -6,7 +6,7 @@ end of each session.
 
 ---
 
-## Status: 🚧 Steps 1–6 complete (deploys live). Next: step 7 (LiveGameHero).
+## Status: 🚧 Steps 1–7 complete (deploys live). Next: step 8 (Shoutbox + reactions + big-moment cards).
 
 Last updated: 2026-05-03
 
@@ -116,20 +116,59 @@ Last updated: 2026-05-03
         row below — saves the wrong field silently. ~30 min lost
         chasing this as a key/code issue. Lesson: after editing an env
         var, click the Update button attached *to that specific row*.
+- [x] **Task #13 fixed (2026-05-03).** Magic-link auth redirected to
+      `http://localhost:5173` from production. Root cause was Supabase
+      Dashboard → Auth → URL Configuration: Site URL still pinned to
+      localhost from Phase 1 and `https://horstbrewerhub.com/**` was
+      not in the Redirect URLs allow-list, so `emailRedirectTo` was
+      silently rejected and Supabase fell back to Site URL. Code in
+      `web/src/routes/Login.tsx:36,53` was already correct
+      (`emailRedirectTo: \`${window.location.origin}/\``). Pure
+      Dashboard fix; no code change. Verified: prod sign-in works,
+      local dev sign-in still works.
+- [x] **Step 7 — LiveGameHero on Home (2026-05-03).** Slim NextGameStrip
+      and full live-tracker hero now render at the top of `/`. Six new
+      modules in `web/src/components/LiveGameHero/`:
+      - `useLiveGameState.ts` — initial fetch + Realtime
+        `postgres_changes` subscription on `live_game_state` filtered
+        by `game_id`. Subscribes eagerly even on Scheduled games so the
+        UI auto-flips to live the moment the poller writes the first
+        row, no refresh needed.
+      - `LiveGameHero.tsx` — orchestrator: picks today's game (any
+        status) or the next future Scheduled game, mode-switches
+        between FullHero and NextGameStrip. Returns `null` when there
+        is no current/upcoming game (off-season per Ryan's product
+        call).
+      - `Scoreboard.tsx` — pulsing LIVE dot + inning + B-S-O count +
+        two team rows (Brewers row gold-accented, leading team
+        brightened, batting team marked).
+      - `BaserunnerDiamond.tsx` — pure 100×100 viewBox SVG; lit bases
+        from the `bases` jsonb shape `{first, second, third}`.
+      - `WinProbabilitySparkline.tsx` — Recharts AreaChart of last N
+        plays' `brewersWP × 100`, gold gradient fill, 50% reference
+        line, no axes/tooltip (it's a hero, not an analytics chart).
+      - `NextGameStrip.tsx` — slim variant: today-Scheduled
+        (countdown), today-Final (Won/Lost X-Y), today-Postponed,
+        future-Scheduled (date + time). Always tappable → game detail.
+      Bumped `poller/live_state.py` `RECENT_PLAYS_COUNT` 20 → 30 to
+      match Phase 3 sparkline window. Installed `recharts` +
+      `react-is` (with `--legacy-peer-deps`). Verified end-to-end at
+      375px: NextGameStrip "Today + Scheduled" branch rendered
+      correctly for today's MIL @ WSH game, console clean, click-
+      through routes to `/games/:gamePk`. **FullHero mode unverified
+      under live conditions** — game.status hasn't been refreshed by
+      `sync-schedule` (task #10), so the strip showed "Scheduled" even
+      though the 12:35 PM game was already in progress. The hook +
+      mode-switch logic are correct; they just couldn't be exercised
+      against today's live data without manually invoking the cron.
+      Two new follow-ups generated: tasks #14 (lazy-load recharts —
+      bundle hit 784 KB / 229 KB gzipped), #15 (PWA meta deprecation
+      in `web/index.html:13`).
 
 ### Deferred / blocked
 
-- [ ] **🐛 Magic-link auth redirects to localhost in production.**
-      *(Task #13 — reported 2026-05-03; not yet investigated.)* Family
-      members signing in via magic link at `https://horstbrewerhub.com`
-      get an email link that points to `http://localhost:5173`. Sign-in
-      is broken in prod until this is fixed. Likely fix: Supabase
-      Dashboard → Auth → URL Configuration → set `Site URL` to
-      `https://horstbrewerhub.com` and add both prod and localhost to
-      the redirect-URL allow-list. Also worth grepping the codebase for
-      `emailRedirectTo` in `signInWithOtp` calls — should use
-      `window.location.origin` (auto-adapts) instead of any hardcoded
-      value. **Start the next session with this.**
+_(none currently — task #13 closed; backlog tracked in the cross-task
+index below.)_
 
 ### Lessons learned (carry into Phase 4)
 
@@ -159,6 +198,23 @@ Last updated: 2026-05-03
   > `.env` > field defaults. So Coolify's runtime env always wins over
   any baked-in `.env` file (which we don't ship anyway via
   `.dockerignore`).
+- **Supabase Auth's "Site URL" is the silent fallback for magic-link
+  redirects.** `emailRedirectTo` in the client is only honored if the
+  origin matches the Redirect URLs allow-list. If it doesn't match,
+  Supabase silently falls back to Site URL — no error, no warning. So
+  a missing prod URL in the allow-list looks identical to "the code
+  has localhost hardcoded somewhere." When debugging redirect issues,
+  check Dashboard config FIRST before grepping code (~30 min would
+  have been saved here).
+- **Recharts pulls a peer dep on `react-is` that npm doesn't auto-
+  install.** Vite's optimizer fails the page load with
+  "Failed to resolve import `react-is`" until you `npm i react-is`
+  explicitly. After installing, blow away `node_modules/.vite/` and
+  restart the dev server — the optimizer caches the failure.
+- **Vite chunk-size warning at 500 KB is genuine.** Recharts adds
+  ~150 KB to the main bundle; we're now at 784 KB / 229 KB gzipped.
+  Lazy-loading WinProbabilitySparkline via dynamic import would let
+  off-day visitors skip the chart bundle entirely. Tracked as task #14.
 
 ---
 
@@ -172,11 +228,12 @@ Last updated: 2026-05-03
 - [x] Big moment detection: home_run, lead_change, wp_swing ≥ 15pp,
       walkoff (20/20 unit tests pass; live emission unverified — no
       qualifying moments fired during initial integration window)
-- [ ] Home page live hero: score + inning + baserunner diamond +
+- [x] Home page live hero: score + inning + baserunner diamond +
       win-probability sparkline; updates without manual refresh
-      **(step 7 — next)**
+      **(step 7 done; FullHero mode unverified under live conditions —
+      needs `sync-schedule` cron for live game.status)**
 - [ ] Shoutbox: last 50 comments, "load more" pagination, Realtime
-      append **(step 8)**
+      append **(step 8 — next)**
 - [ ] Auto big-moment cards render with gold-bordered styling, link
       to `/games/:gamePk` **(step 8)**
 - [ ] Reactions: 👏 🔥 😂 😢 ⚾ 🍺 picker, one-per-user-per-emoji-per-
@@ -190,28 +247,20 @@ Last updated: 2026-05-03
 
 ## Resume from here — start of next session
 
-1. **Fix the production magic-link bug (task #13).** Symptom: signing in
-   from `https://horstbrewerhub.com` sends a magic-link email pointing to
-   `http://localhost:5173`. Almost certainly a Supabase Dashboard → Auth
-   → URL Configuration setting (Site URL still on localhost from Phase 1).
-   See task #13 description for the full fix path. Validate from prod
-   AND from local dev after the fix to make sure both flows work.
+1. **Phase 3 step 8 — Shoutbox + reactions + auto big-moment cards.**
+   Owns `web/src/components/Shoutbox/`. Subscribes to `comments` via
+   Realtime, renders last 50 with "load more" pagination, optimistic
+   compose. Auto big-moment cards: when a row appears in `big_moments`,
+   render a gold-bordered card in-line in the shoutbox feed linking to
+   `/games/:gamePk`. Reactions: 👏 🔥 😂 😢 ⚾ 🍺 picker, one-per-user-
+   per-emoji-per-comment, optimistic.
 
-2. **Then resume Phase 3 step 7 — `LiveGameHero` on Home.** Three
-   sub-components: `Scoreboard.tsx`, `BaserunnerDiamond.tsx`,
-   `WinProbabilitySparkline.tsx`. Subscribe to `live_game_state` row
-   for the current `game_id` via Supabase Realtime. Fall back to the
-   "next game" card from `public.games` when no live row exists. Two
-   product calls already made:
-   - **Layout:** full-width hero above the existing 2x2 tile grid when
-     a game is live; collapses to a slim "Next game in 3h 12m" strip on
-     off-days.
-   - **WP sparkline data:** consume `recent_plays` jsonb from the
-     `live_game_state` row (already shaped as `[{inning, inningState,
-     brewersWP, description}, ...]`). Chart the last 30 plays,
-     y-axis 0–100 (Brewers WP), x-axis play index. Recharts.
+2. **Then step 9 — Recipe 3 review team** (mandatory — see kickoff doc).
 
-3. After step 7, step 8 is `Shoutbox` + reactions + big-moment cards.
+3. **At some point soon, install the cron schedules (task #10).**
+   Without them, today's `games.status` doesn't refresh from MLB and
+   the LiveGameHero's FullHero mode never gets exercised in the wild.
+   Closing #10 also fixes the standings-stale-since-April-28 issue.
 
 ---
 
@@ -228,6 +277,15 @@ Last updated: 2026-05-03
 - **`--legacy-peer-deps` on `npm ci` in `web/Dockerfile`** to bypass
   `vite-plugin-pwa@1.2.0` peer-vite-≤7 vs `vite@8` mismatch. Drop the
   flag once vite-plugin-pwa supports vite@8 (task #12).
+- **Off-season Home renders nothing above the welcome card** (vs.
+  showing "Spring training starts in N days" or similar). Phase 6
+  (offseason mode) will revisit; for now silence is better than fake
+  state.
+- **Subscribe to `live_game_state` eagerly even on Scheduled games.**
+  Lets the NextGameStrip auto-flip to FullHero the moment the poller
+  writes the first row at game start — no refresh needed. Cost is one
+  Realtime channel per Home page load while waiting for first pitch;
+  acceptable for a family-only audience.
 
 ---
 
@@ -239,4 +297,6 @@ Last updated: 2026-05-03
 | 10 | Install Dashboard cron schedules for sync-schedule + sync-standings | Phase 2 follow-up. Without it, `games` and `standings_snapshot` will go stale daily. |
 | 11 | Revoke EXECUTE on Phase 1 SECURITY DEFINER trigger fns | Pre-existing advisor warnings on `prevent_admin_self_promotion` exposed via `/rest/v1/rpc`. |
 | 12 | Drop `--legacy-peer-deps` when vite-plugin-pwa supports Vite 8 | Cleaner build. Currently a workaround. |
-| 13 | **🐛 Magic-link auth redirects to localhost in production** | **Blocking sign-in for family. Start next session here.** |
+| 13 | ~~Magic-link auth redirects to localhost in production~~ | ✅ Closed 2026-05-03. Pure Supabase Dashboard fix (Site URL + Redirect URLs allow-list). |
+| 14 | Lazy-load `WinProbabilitySparkline` (recharts) via dynamic import | Bundle hit 784 KB / 229 KB gzipped after recharts. Off-day visitors don't need the chart. |
+| 15 | Replace deprecated `<meta name="apple-mobile-web-app-capable">` in `web/index.html:13` with the modern `<meta name="mobile-web-app-capable">` (keeping the apple- prefixed version alongside per current iOS recommendation). | Console deprecation warning. One-line change. |
